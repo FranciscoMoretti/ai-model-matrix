@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { useModelColor } from "./ModelColorContext";
 import type { ModelData } from "@/data/models";
 
@@ -17,16 +17,23 @@ export const ModelSummaryCard: React.FC<Props> = ({
   isWinner = false,
 }) => {
   const { getColor } = useModelColor();
+  
   return (
-    <div className="flex items-center gap-2 mt-1 mb-1">
+    <div className="flex items-center gap-2">
       {isWinner && (
-        <Badge className="bg-yellow-500 text-white font-bold px-2 py-1">
-          <Star className="w-4 h-4 mr-1 inline" />
+        <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium px-2 py-1 text-xs">
+          <Star className="w-3 h-3 mr-1" />
           Winner
         </Badge>
       )}
-      <Badge className={`${getColor(model.id)} text-white px-2 py-1 font-semibold`}>{model.name}</Badge>
-      <span className="text-gray-700 font-medium text-sm">{highlight}</span>
+      <Badge 
+        className={`${getColor(model.id)} hover:opacity-90 text-white px-2 py-1 font-medium text-xs`}
+      >
+        {model.name}
+      </Badge>
+      {highlight && (
+        <span className="text-gray-600 text-sm font-medium">{highlight}</span>
+      )}
     </div>
   );
 };

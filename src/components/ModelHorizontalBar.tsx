@@ -14,7 +14,7 @@ export const ModelHorizontalBar: React.FC<Props> = ({
   modelId,
   value,
   max,
-  height = 15,
+  height = 12,
   showDot = false,
 }) => {
   const { getColor } = useModelColor();
@@ -22,24 +22,29 @@ export const ModelHorizontalBar: React.FC<Props> = ({
 
   return (
     <div className="relative w-full flex items-center" style={{ height }}>
-      <div className="absolute rounded-full w-full bg-gray-200" style={{ height }} />
-      <div
-        className={`absolute rounded-full ${getColor(modelId)}`}
-        style={{ width: "100%", height, opacity: 0.1 }}
+      {/* Background track */}
+      <div 
+        className="absolute w-full bg-gray-200 rounded-full" 
+        style={{ height }} 
       />
+      
+      {/* Progress bar */}
       <div
-        className={`relative rounded-full ${getColor(modelId)} transition-all`}
+        className={`absolute rounded-full ${getColor(modelId)} transition-all duration-300 ease-out`}
         style={{
-          width: "100%",
-          maxWidth: "100%",
+          width: `${percent}%`,
           height,
-          clipPath: `inset(0 ${100 - percent}% 0 0)`,
         }}
       />
+      
       {showDot && (
         <div
-          className={`absolute right-0 w-3 h-3 rounded-full ${getColor(modelId)}`}
-          style={{ top: "50%", transform: "translateY(-50%)" }}
+          className={`absolute w-3 h-3 rounded-full ${getColor(modelId)} border-2 border-white shadow-sm`}
+          style={{ 
+            left: `${percent}%`, 
+            top: "50%", 
+            transform: "translate(-50%, -50%)" 
+          }}
         />
       )}
     </div>
