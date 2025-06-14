@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,17 +7,79 @@ import { Progress } from '@/components/ui/progress';
 import { enabledModels, ModelData, getProviderColor } from '@/data/models';
 import { ArrowLeft, Brain, Zap, FileText, Image, Mic, Volume2, DollarSign } from 'lucide-react';
 
+// HorizontalStatBar is a local helper for the comparison bars
+function HorizontalStatBar({
+  value,
+  max,
+  colorClass,
+  height = 14,
+}: {
+  value: number;
+  max: number;
+  colorClass: string;
+  height?: number;
+}) {
+  const percentage = max === 0 ? 0 : (value / max) * 100;
+  return (
+    <div className="relative w-full flex items-center" style={{ height }}>
+      <div
+        className="absolute rounded-full w-full bg-gray-200"
+        style={{ height }}
+      />
+      <div
+        className={`absolute rounded-full ${colorClass}`}
+        style={{ width: `${percentage}%`, height }}
+      />
+    </div>
+  );
+}
+
+const providerCardBorder = {
+  google: 'border-blue-500',
+  anthropic: 'border-orange-500',
+  openai: 'border-green-500',
+};
+
+const providerCardText = {
+  google: 'text-blue-600',
+  anthropic: 'text-orange-600',
+  openai: 'text-green-600',
+};
+
+const providerCardBadge = {
+  google: 'bg-blue-500',
+  anthropic: 'bg-orange-500',
+  openai: 'bg-green-500',
+};
+
+const providerLabel = {
+  google: 'GOOGLE',
+  anthropic: 'ANTHROPIC',
+  openai: 'OPENAI',
+};
+
+// Formatting helpers
+const formatContextWindow = (tokens: number) => {
+  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`;
+  if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(0)}K`;
+  return tokens.toString();
+};
+
+const formatPrice = (price: number) => {
+  if (price < 1) return `$${price.toFixed(3)}`;
+  return `$${price.toFixed(2)}`;
+};
+
 const Comparison = () => {
   const [searchParams] = useSearchParams();
   const modelIds = searchParams.get('models')?.split(',') || [];
-  
   const models = modelIds
     .map(id => enabledModels.find(model => model.id === id))
     .filter(Boolean) as ModelData[];
 
   if (models.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">No models to compare</h1>
           <Link to="/">
@@ -32,134 +93,129 @@ const Comparison = () => {
     );
   }
 
-  // Formatting helpers
-  const formatContextWindow = (tokens: number) => {
-    if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
-    if (tokens >= 1000) return `${(tokens / 1000).toFixed(0)}K`;
-    return tokens.toString();
-  };
-
-  const formatPrice = (price: number) => {
-    if (price < 1) return `$${price.toFixed(3)}`;
-    return `$${price.toFixed(2)}`;
-  };
-
+  // Calculate max values for normalized bar widths
   const maxInputPrice = Math.max(...models.map(m => m.pricing.inputMTok));
   const maxOutputPrice = Math.max(...models.map(m => m.pricing.outputMTok));
   const maxInputContext = Math.max(...models.map(m => m.features.contextWindow.input));
   const maxOutputContext = Math.max(...models.map(m => m.features.contextWindow.output));
 
-  // Extra: Provider accent color utility
-  const getAccentBorder = (provider: string) => {
-    switch (provider) {
-      case 'google': return 'border-blue-500';
-      case 'anthropic': return 'border-orange-500';
-      case 'openai': return 'border-green-500';
-      default: return 'border-gray-300';
-    }
+  // Get color by provider
+  const getProviderColorClass = (provider: string) => {
+    if (provider === 'google') return 'bg-blue-500';
+    if (provider === 'anthropic') return 'bg-orange-500';
+    if (provider === 'openai') return 'bg-green-500';
+    return 'bg-gray-400';
   };
 
+  // ==== RENDER ====
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 py-0">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       {/* Header */}
-      <div className="bg-white/90 border-b border-gray-200/80 shadow-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 flex justify-between items-center">
+      <div className="bg-white/95 border-b border-gray-200/80 shadow-sm sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 flex items-center gap-6">
           <Link to="/" className="shrink-0">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Models
             </Button>
           </Link>
-          <div className="flex flex-col gap-0 flex-1 ml-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-0">Model Comparison</h1>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Model Comparison</h1>
             <span className="text-gray-600 text-base">{models.length} models selected</span>
           </div>
         </div>
       </div>
 
       {/* Top Model Cards */}
-      <div className="bg-[#f7fafd] py-6">
+      <div className="bg-transparent pt-10 pb-2">
         <div className="max-w-6xl mx-auto px-4 md:px-8 flex flex-col md:flex-row gap-5">
-          {models.map((model) => (
-            <div
-              key={model.id}
-              className={`flex-1 rounded-xl bg-white border-2 shadow-sm p-5 flex flex-col items-center min-w-[220px] ${getAccentBorder(model.specification.provider)}`}
-            >
-              <div className="flex gap-2 mb-2 items-center">
-                <Badge
-                  variant="secondary"
-                  className={`text-white text-xs font-semibold ${getProviderColor(model.specification.provider)}`}
-                >
-                  {model.specification.provider.toUpperCase()}
-                </Badge>
-                {model.features.reasoning && (
-                  <Badge variant="outline" className="text-xs">
-                    <Brain className="w-3 h-3 mr-1" />
-                  </Badge>
-                )}
+          {models.map((model) => {
+            const provider = model.specification.provider;
+            return (
+              <div
+                key={model.id}
+                className={`
+                  flex-1 
+                  border-2 
+                  rounded-2xl 
+                  px-6 pb-4 pt-4 
+                  bg-white 
+                  flex flex-col 
+                  items-start 
+                  min-w-[220px] 
+                  shadow-sm
+                  ${providerCardBorder[provider] || 'border-gray-300'}
+                `}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <div className={`rounded px-2 py-1 text-xs font-bold text-white ${providerCardBadge[provider]}`}>{providerLabel[provider]}</div>
+                </div>
+                <div className={`text-xl font-bold my-1 ${providerCardText[provider]}`}>
+                  {model.name}
+                </div>
+                <div className="text-gray-600 text-base font-normal">{model.shortDescription}</div>
               </div>
-              <div className="text-lg md:text-xl font-bold text-center text-gray-900">{model.name}</div>
-              <div className="text-sm text-gray-600 text-center">{model.shortDescription}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 md:px-8 space-y-8 pb-12">
+      {/* Comparison Sections */}
+      <div className="max-w-6xl mx-auto px-4 md:px-8 space-y-7 pb-12">
+
         {/* Price Comparison */}
-        <Card className="rounded-xl shadow border-0">
-          <CardHeader className="bg-white rounded-t-xl border-b pb-4">
-            <CardTitle className="flex items-center gap-2 text-xl font-semibold">
-              <DollarSign className="w-5 h-5" />
+        <Card className="rounded-2xl shadow-sm border-0 bg-white">
+          <CardContent className="px-8 py-7">
+            <h2 className="font-semibold text-lg text-gray-900 flex items-center mb-5">
+              <DollarSign className="w-5 h-5 mr-2" />
               Price Comparison
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4 bg-white rounded-b-xl">
-            <div className="space-y-6">
+            </h2>
+            <div className="space-y-8 md:space-y-6">
+              {/* Input Pricing */}
               <div>
-                <div className="font-medium mb-2 text-gray-900">Input Pricing <span className="text-xs text-gray-500">(per 1M tokens)</span></div>
-                <div className="space-y-2">
+                <div className="font-medium mb-2 text-gray-900">
+                  Input Pricing <span className="text-xs text-gray-500 font-normal">(per 1M tokens)</span>
+                </div>
+                <div className="space-y-3">
                   {models.map((model) => (
-                    <div key={`${model.id}-input`} className="flex items-center">
-                      <span className="font-medium text-gray-700 min-w-[140px]">{model.name}</span>
-                      <div className="flex-1 mx-4">
-                        <div className="relative h-5 flex items-center">
-                          <div className="w-full bg-gray-100 rounded-full h-3 absolute" />
-                          <div
-                            className={`h-3 rounded-full absolute ${getProviderColor(model.specification.provider)}`}
-                            style={{
-                              width: `${(model.pricing.inputMTok / maxInputPrice) * 100}%`,
-                            }}
-                          />
-                        </div>
+                    <div key={`${model.id}-input`} className="flex items-center gap-2">
+                      <div className="text-gray-700 min-w-[160px] text-base font-medium">{model.name}</div>
+                      <div className="flex-1 mx-2">
+                        <HorizontalStatBar
+                          value={model.pricing.inputMTok}
+                          max={maxInputPrice}
+                          colorClass={getProviderColorClass(model.specification.provider)}
+                          height={11}
+                        />
                       </div>
-                      <span className="text-base font-semibold min-w-[4rem] text-right text-gray-800">
+                      <div className="text-base min-w-[4.5rem] font-semibold text-right tabular-nums text-gray-900">
                         {formatPrice(model.pricing.inputMTok)}
-                      </span>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {/* Output Pricing */}
               <div>
-                <div className="font-medium mb-2 text-gray-900">Output Pricing <span className="text-xs text-gray-500">(per 1M tokens)</span></div>
-                <div className="space-y-2">
+                <div className="font-medium mb-2 text-gray-900">
+                  Output Pricing <span className="text-xs text-gray-500 font-normal">(per 1M tokens)</span>
+                </div>
+                <div className="space-y-3">
                   {models.map((model) => (
-                    <div key={`${model.id}-output`} className="flex items-center">
-                      <span className="font-medium text-gray-700 min-w-[140px]">{model.name}</span>
-                      <div className="flex-1 mx-4">
-                        <div className="relative h-5 flex items-center">
-                          <div className="w-full bg-gray-100 rounded-full h-3 absolute" />
-                          <div
-                            className={`h-3 rounded-full absolute ${getProviderColor(model.specification.provider)}`}
-                            style={{
-                              width: `${(model.pricing.outputMTok / maxOutputPrice) * 100}%`,
-                            }}
-                          />
-                        </div>
+                    <div key={`${model.id}-output`} className="flex items-center gap-2">
+                      <div className="text-gray-700 min-w-[160px] text-base font-medium">{model.name}</div>
+                      <div className="flex-1 mx-2">
+                        <HorizontalStatBar
+                          value={model.pricing.outputMTok}
+                          max={maxOutputPrice}
+                          colorClass={getProviderColorClass(model.specification.provider)}
+                          height={11}
+                        />
                       </div>
-                      <span className="text-base font-semibold min-w-[4rem] text-right text-gray-800">
+                      <div className="text-base min-w-[4.5rem] font-semibold text-right tabular-nums text-gray-900">
                         {formatPrice(model.pricing.outputMTok)}
-                      </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -168,60 +224,59 @@ const Comparison = () => {
           </CardContent>
         </Card>
 
-        {/* Context Window Comparison */}
-        <Card className="rounded-xl shadow border-0">
-          <CardHeader className="bg-white rounded-t-xl border-b pb-4">
-            <CardTitle className="flex items-center gap-2 text-xl font-semibold">
-              <FileText className="w-5 h-5" />
+        {/* Context Window */}
+        <Card className="rounded-2xl shadow-sm border-0 bg-white">
+          <CardContent className="px-8 py-7">
+            <h2 className="font-semibold text-lg text-gray-900 flex items-center mb-5">
+              <FileText className="w-5 h-5 mr-2" />
               Context Window
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4 bg-white rounded-b-xl">
-            <div className="space-y-6">
+            </h2>
+            <div className="space-y-8 md:space-y-6">
+              {/* Input Context */}
               <div>
-                <div className="font-medium mb-2 text-gray-900">Input Context</div>
-                <div className="space-y-2">
+                <div className="font-medium mb-2 text-gray-900">
+                  Input Context
+                </div>
+                <div className="space-y-3">
                   {models.map((model) => (
-                    <div key={`${model.id}-input-context`} className="flex items-center">
-                      <span className="font-medium text-gray-700 min-w-[140px]">{model.name}</span>
-                      <div className="flex-1 mx-4">
-                        <div className="relative h-5 flex items-center">
-                          <div className="w-full bg-gray-100 rounded-full h-3 absolute" />
-                          <div
-                            className={`h-3 rounded-full absolute ${getProviderColor(model.specification.provider)}`}
-                            style={{
-                              width: `${(model.features.contextWindow.input / maxInputContext) * 100}%`,
-                            }}
-                          />
-                        </div>
+                    <div key={`${model.id}-input-context`} className="flex items-center gap-2">
+                      <div className="text-gray-700 min-w-[160px] text-base font-medium">{model.name}</div>
+                      <div className="flex-1 mx-2">
+                        <HorizontalStatBar
+                          value={model.features.contextWindow.input}
+                          max={maxInputContext}
+                          colorClass={getProviderColorClass(model.specification.provider)}
+                          height={11}
+                        />
                       </div>
-                      <span className="text-base font-semibold min-w-[4rem] text-right text-gray-800">
+                      <div className="text-base min-w-[4.5rem] font-semibold text-right tabular-nums text-gray-900">
                         {formatContextWindow(model.features.contextWindow.input)}
-                      </span>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
+              
+              {/* Output Context */}
               <div>
-                <div className="font-medium mb-2 text-gray-900">Output Context</div>
-                <div className="space-y-2">
+                <div className="font-medium mb-2 text-gray-900">
+                  Output Context
+                </div>
+                <div className="space-y-3">
                   {models.map((model) => (
-                    <div key={`${model.id}-output-context`} className="flex items-center">
-                      <span className="font-medium text-gray-700 min-w-[140px]">{model.name}</span>
-                      <div className="flex-1 mx-4">
-                        <div className="relative h-5 flex items-center">
-                          <div className="w-full bg-gray-100 rounded-full h-3 absolute" />
-                          <div
-                            className={`h-3 rounded-full absolute ${getProviderColor(model.specification.provider)}`}
-                            style={{
-                              width: `${(model.features.contextWindow.output / maxOutputContext) * 100}%`,
-                            }}
-                          />
-                        </div>
+                    <div key={`${model.id}-output-context`} className="flex items-center gap-2">
+                      <div className="text-gray-700 min-w-[160px] text-base font-medium">{model.name}</div>
+                      <div className="flex-1 mx-2">
+                        <HorizontalStatBar
+                          value={model.features.contextWindow.output}
+                          max={maxOutputContext}
+                          colorClass={getProviderColorClass(model.specification.provider)}
+                          height={11}
+                        />
                       </div>
-                      <span className="text-base font-semibold min-w-[4rem] text-right text-gray-800">
+                      <div className="text-base min-w-[4.5rem] font-semibold text-right tabular-nums text-gray-900">
                         {formatContextWindow(model.features.contextWindow.output)}
-                      </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -230,7 +285,7 @@ const Comparison = () => {
           </CardContent>
         </Card>
 
-        {/* Features Table */}
+        {/* More sections (Features, etc) ... keep existing code for any additional detailed sections, focus is on Price & Context as per reference */}
         <Card className="rounded-xl shadow border-0">
           <CardHeader className="bg-white rounded-t-xl border-b pb-4">
             <CardTitle className="flex items-center gap-2 text-xl font-semibold">
