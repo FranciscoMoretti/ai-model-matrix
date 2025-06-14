@@ -6,6 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { enabledModels, ModelData, getProviderColor } from '@/data/models';
 import { ArrowLeft, Brain, Zap, FileText, Image, Mic, Volume2, DollarSign } from 'lucide-react';
+import { ModelColorProvider } from "@/components/ModelColorContext";
+import { ModelHorizontalBar } from "@/components/ModelHorizontalBar";
+import { ModelSummaryCard } from "@/components/ModelSummaryCard";
 
 // HorizontalStatBar is a local helper for the comparison bars
 function HorizontalStatBar({
@@ -99,6 +102,11 @@ const Comparison = () => {
   const maxInputContext = Math.max(...models.map(m => m.features.contextWindow.input));
   const maxOutputContext = Math.max(...models.map(m => m.features.contextWindow.output));
 
+  // "Winner" logic for summaries
+  const minInputPrice = Math.min(...models.map((m) => m.pricing.inputMTok));
+  const minOutputPrice = Math.min(...models.map((m) => m.pricing.outputMTok));
+  const maxContextWindow = Math.max(...models.map((m) => m.features.contextWindow.input));
+
   // Get color by provider
   const getProviderColorClass = (provider: string) => {
     if (provider === 'google') return 'bg-blue-500';
@@ -107,279 +115,277 @@ const Comparison = () => {
     return 'bg-gray-400';
   };
 
+  // Model highlight generator
+  const getHighlights = (model: ModelData) => {
+    const highlights: string[] = [];
+    if (model.pricing.inputMTok === minInputPrice)
+      highlights.push("Lowest input price");
+    if (model.pricing.outputMTok === minOutputPrice)
+      highlights.push("Lowest output price");
+    if (model.features.contextWindow.input === maxContextWindow)
+      highlights.push("Largest context window");
+    return highlights;
+  };
+
   // ==== RENDER ====
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
-      {/* Header */}
-      <div className="bg-white/95 border-b border-gray-200/80 shadow-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 flex items-center gap-6">
-          <Link to="/" className="shrink-0">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Models
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Model Comparison</h1>
-            <span className="text-gray-600 text-base">{models.length} models selected</span>
+    <ModelColorProvider models={models}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+        {/* Header */}
+        <div className="bg-white/95 border-b border-gray-200/80 shadow-sm sticky top-0 z-10">
+          <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 flex items-center gap-6">
+            <Link to="/" className="shrink-0">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Models
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Model Comparison</h1>
+              <span className="text-gray-600 text-base">{models.length} models selected</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Top Model Cards */}
-      <div className="bg-transparent pt-10 pb-2">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 flex flex-col md:flex-row gap-5">
-          {models.map((model) => {
-            const provider = model.specification.provider;
-            return (
+        {/* Top Model Cards with summaries */}
+        <div className="bg-transparent pt-10 pb-2">
+          <div className="max-w-6xl mx-auto px-4 md:px-8 flex flex-col md:flex-row gap-5">
+            {models.map((model) => (
               <div
                 key={model.id}
-                className={`
-                  flex-1 
-                  border-2 
-                  rounded-2xl 
-                  px-6 pb-4 pt-4 
-                  bg-white 
-                  flex flex-col 
-                  items-start 
-                  min-w-[220px] 
-                  shadow-sm
-                  ${providerCardBorder[provider] || 'border-gray-300'}
-                `}
+                className={`flex-1 border-2 rounded-2xl px-6 pb-4 pt-4 bg-white flex flex-col items-start min-w-[220px] shadow-sm`}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <div className={`rounded px-2 py-1 text-xs font-bold text-white ${providerCardBadge[provider]}`}>{providerLabel[provider]}</div>
-                </div>
-                <div className={`text-xl font-bold my-1 ${providerCardText[provider]}`}>
-                  {model.name}
-                </div>
+                <div className={`text-xl font-bold my-1`}>{model.name}</div>
                 <div className="text-gray-600 text-base font-normal">{model.shortDescription}</div>
+                {getHighlights(model).map((highlight, idx) => (
+                  <ModelSummaryCard
+                    key={highlight}
+                    model={model}
+                    highlight={highlight}
+                    isWinner={highlight.includes("Lowest") || highlight.includes("Largest")}
+                  />
+                ))}
               </div>
-            );
-          })}
+            ))}
+          </div>
+        </div>
+
+        {/* Comparison Sections */}
+        <div className="max-w-6xl mx-auto px-4 md:px-8 space-y-7 pb-12">
+
+          {/* Price Comparison */}
+          <Card className="rounded-2xl shadow-sm border-0 bg-white">
+            <CardContent className="px-8 py-7">
+              <h2 className="font-semibold text-lg text-gray-900 flex items-center mb-5">
+                <DollarSign className="w-5 h-5 mr-2" />
+                Price Comparison
+              </h2>
+              <div className="space-y-8 md:space-y-6">
+                {/* Input Pricing */}
+                <div>
+                  <div className="font-medium mb-2 text-gray-900">
+                    Input Pricing <span className="text-xs text-gray-500 font-normal">(per 1M tokens)</span>
+                  </div>
+                  <div className="space-y-3">
+                    {models.map((model) => (
+                      <div key={`${model.id}-input`} className="flex items-center gap-2">
+                        <div className="text-gray-700 min-w-[160px] text-base font-medium">{model.name}</div>
+                        <div className="flex-1 mx-2">
+                          <ModelHorizontalBar
+                            modelId={model.id}
+                            value={model.pricing.inputMTok}
+                            max={maxInputPrice}
+                          />
+                        </div>
+                        <div className="text-base min-w-[4.5rem] font-semibold text-right tabular-nums text-gray-900">
+                          {formatPrice(model.pricing.inputMTok)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Output Pricing */}
+                <div>
+                  <div className="font-medium mb-2 text-gray-900">
+                    Output Pricing <span className="text-xs text-gray-500 font-normal">(per 1M tokens)</span>
+                  </div>
+                  <div className="space-y-3">
+                    {models.map((model) => (
+                      <div key={`${model.id}-output`} className="flex items-center gap-2">
+                        <div className="text-gray-700 min-w-[160px] text-base font-medium">{model.name}</div>
+                        <div className="flex-1 mx-2">
+                          <ModelHorizontalBar
+                            modelId={model.id}
+                            value={model.pricing.outputMTok}
+                            max={maxOutputPrice}
+                          />
+                        </div>
+                        <div className="text-base min-w-[4.5rem] font-semibold text-right tabular-nums text-gray-900">
+                          {formatPrice(model.pricing.outputMTok)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Context Window */}
+          <Card className="rounded-2xl shadow-sm border-0 bg-white">
+            <CardContent className="px-8 py-7">
+              <h2 className="font-semibold text-lg text-gray-900 flex items-center mb-5">
+                <FileText className="w-5 h-5 mr-2" />
+                Context Window
+              </h2>
+              <div className="space-y-8 md:space-y-6">
+                {/* Input Context */}
+                <div>
+                  <div className="font-medium mb-2 text-gray-900">
+                    Input Context
+                  </div>
+                  <div className="space-y-3">
+                    {models.map((model) => (
+                      <div key={`${model.id}-input-context`} className="flex items-center gap-2">
+                        <div className="text-gray-700 min-w-[160px] text-base font-medium">{model.name}</div>
+                        <div className="flex-1 mx-2">
+                          <ModelHorizontalBar
+                            modelId={model.id}
+                            value={model.features.contextWindow.input}
+                            max={maxInputContext}
+                          />
+                        </div>
+                        <div className="text-base min-w-[4.5rem] font-semibold text-right tabular-nums text-gray-900">
+                          {formatContextWindow(model.features.contextWindow.input)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Output Context */}
+                <div>
+                  <div className="font-medium mb-2 text-gray-900">
+                    Output Context
+                  </div>
+                  <div className="space-y-3">
+                    {models.map((model) => (
+                      <div key={`${model.id}-output-context`} className="flex items-center gap-2">
+                        <div className="text-gray-700 min-w-[160px] text-base font-medium">{model.name}</div>
+                        <div className="flex-1 mx-2">
+                          <ModelHorizontalBar
+                            modelId={model.id}
+                            value={model.features.contextWindow.output}
+                            max={maxOutputContext}
+                          />
+                        </div>
+                        <div className="text-base min-w-[4.5rem] font-semibold text-right tabular-nums text-gray-900">
+                          {formatContextWindow(model.features.contextWindow.output)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl shadow border-0">
+            <CardHeader className="bg-white rounded-t-xl border-b pb-4">
+              <CardTitle className="flex items-center gap-2 text-xl font-semibold">
+                <Zap className="w-5 h-5" />
+                Features
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 bg-white rounded-b-xl overflow-x-auto">
+              <table className="w-full table-fixed border-spacing-y-3">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-base">Feature</th>
+                    {models.map((model) => (
+                      <th key={model.id} className="text-center py-3 px-4 font-semibold text-gray-700 text-base min-w-[120px]">
+                        {model.name}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  <tr>
+                    <td className="py-3 px-4 font-medium text-gray-700">Reasoning</td>
+                    {models.map((model) => (
+                      <td key={model.id} className="py-3 px-4 text-center">
+                        {model.features.reasoning ? (
+                          <Brain className="w-6 h-6 text-green-500 mx-auto" />
+                        ) : (
+                          <span className="text-gray-400 text-xl">−</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td className="py-3 px-4 font-medium text-gray-700">Function Calling</td>
+                    {models.map((model) => (
+                      <td key={model.id} className="py-3 px-4 text-center">
+                        {model.features.functionCalling ? (
+                          <Zap className="w-6 h-6 text-blue-500 mx-auto" />
+                        ) : (
+                          <span className="text-gray-400 text-xl">−</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td className="py-3 px-4 font-medium text-gray-700">Image Input</td>
+                    {models.map((model) => (
+                      <td key={model.id} className="py-3 px-4 text-center">
+                        {model.features.input.image ? (
+                          <Image className="w-6 h-6 text-purple-500 mx-auto" />
+                        ) : (
+                          <span className="text-gray-400 text-xl">−</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td className="py-3 px-4 font-medium text-gray-700">Audio Input</td>
+                    {models.map((model) => (
+                      <td key={model.id} className="py-3 px-4 text-center">
+                        {model.features.input.audio ? (
+                          <Mic className="w-6 h-6 text-green-500 mx-auto" />
+                        ) : (
+                          <span className="text-gray-400 text-xl">−</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td className="py-3 px-4 font-medium text-gray-700">Audio Output</td>
+                    {models.map((model) => (
+                      <td key={model.id} className="py-3 px-4 text-center">
+                        {model.features.output.audio ? (
+                          <Volume2 className="w-6 h-6 text-orange-500 mx-auto" />
+                        ) : (
+                          <span className="text-gray-400 text-xl">−</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td className="py-3 px-4 font-medium text-gray-700">Knowledge Cutoff</td>
+                    {models.map((model) => (
+                      <td key={model.id} className="py-3 px-4 text-center text-sm text-gray-600 font-semibold">
+                        {model.features.knowledgeCutoff.toLocaleDateString()}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      {/* Comparison Sections */}
-      <div className="max-w-6xl mx-auto px-4 md:px-8 space-y-7 pb-12">
-
-        {/* Price Comparison */}
-        <Card className="rounded-2xl shadow-sm border-0 bg-white">
-          <CardContent className="px-8 py-7">
-            <h2 className="font-semibold text-lg text-gray-900 flex items-center mb-5">
-              <DollarSign className="w-5 h-5 mr-2" />
-              Price Comparison
-            </h2>
-            <div className="space-y-8 md:space-y-6">
-              {/* Input Pricing */}
-              <div>
-                <div className="font-medium mb-2 text-gray-900">
-                  Input Pricing <span className="text-xs text-gray-500 font-normal">(per 1M tokens)</span>
-                </div>
-                <div className="space-y-3">
-                  {models.map((model) => (
-                    <div key={`${model.id}-input`} className="flex items-center gap-2">
-                      <div className="text-gray-700 min-w-[160px] text-base font-medium">{model.name}</div>
-                      <div className="flex-1 mx-2">
-                        <HorizontalStatBar
-                          value={model.pricing.inputMTok}
-                          max={maxInputPrice}
-                          colorClass={getProviderColorClass(model.specification.provider)}
-                          height={11}
-                        />
-                      </div>
-                      <div className="text-base min-w-[4.5rem] font-semibold text-right tabular-nums text-gray-900">
-                        {formatPrice(model.pricing.inputMTok)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Output Pricing */}
-              <div>
-                <div className="font-medium mb-2 text-gray-900">
-                  Output Pricing <span className="text-xs text-gray-500 font-normal">(per 1M tokens)</span>
-                </div>
-                <div className="space-y-3">
-                  {models.map((model) => (
-                    <div key={`${model.id}-output`} className="flex items-center gap-2">
-                      <div className="text-gray-700 min-w-[160px] text-base font-medium">{model.name}</div>
-                      <div className="flex-1 mx-2">
-                        <HorizontalStatBar
-                          value={model.pricing.outputMTok}
-                          max={maxOutputPrice}
-                          colorClass={getProviderColorClass(model.specification.provider)}
-                          height={11}
-                        />
-                      </div>
-                      <div className="text-base min-w-[4.5rem] font-semibold text-right tabular-nums text-gray-900">
-                        {formatPrice(model.pricing.outputMTok)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Context Window */}
-        <Card className="rounded-2xl shadow-sm border-0 bg-white">
-          <CardContent className="px-8 py-7">
-            <h2 className="font-semibold text-lg text-gray-900 flex items-center mb-5">
-              <FileText className="w-5 h-5 mr-2" />
-              Context Window
-            </h2>
-            <div className="space-y-8 md:space-y-6">
-              {/* Input Context */}
-              <div>
-                <div className="font-medium mb-2 text-gray-900">
-                  Input Context
-                </div>
-                <div className="space-y-3">
-                  {models.map((model) => (
-                    <div key={`${model.id}-input-context`} className="flex items-center gap-2">
-                      <div className="text-gray-700 min-w-[160px] text-base font-medium">{model.name}</div>
-                      <div className="flex-1 mx-2">
-                        <HorizontalStatBar
-                          value={model.features.contextWindow.input}
-                          max={maxInputContext}
-                          colorClass={getProviderColorClass(model.specification.provider)}
-                          height={11}
-                        />
-                      </div>
-                      <div className="text-base min-w-[4.5rem] font-semibold text-right tabular-nums text-gray-900">
-                        {formatContextWindow(model.features.contextWindow.input)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Output Context */}
-              <div>
-                <div className="font-medium mb-2 text-gray-900">
-                  Output Context
-                </div>
-                <div className="space-y-3">
-                  {models.map((model) => (
-                    <div key={`${model.id}-output-context`} className="flex items-center gap-2">
-                      <div className="text-gray-700 min-w-[160px] text-base font-medium">{model.name}</div>
-                      <div className="flex-1 mx-2">
-                        <HorizontalStatBar
-                          value={model.features.contextWindow.output}
-                          max={maxOutputContext}
-                          colorClass={getProviderColorClass(model.specification.provider)}
-                          height={11}
-                        />
-                      </div>
-                      <div className="text-base min-w-[4.5rem] font-semibold text-right tabular-nums text-gray-900">
-                        {formatContextWindow(model.features.contextWindow.output)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* More sections (Features, etc) ... keep existing code for any additional detailed sections, focus is on Price & Context as per reference */}
-        <Card className="rounded-xl shadow border-0">
-          <CardHeader className="bg-white rounded-t-xl border-b pb-4">
-            <CardTitle className="flex items-center gap-2 text-xl font-semibold">
-              <Zap className="w-5 h-5" />
-              Features
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4 bg-white rounded-b-xl overflow-x-auto">
-            <table className="w-full table-fixed border-spacing-y-3">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700 text-base">Feature</th>
-                  {models.map((model) => (
-                    <th key={model.id} className="text-center py-3 px-4 font-semibold text-gray-700 text-base min-w-[120px]">
-                      {model.name}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                <tr>
-                  <td className="py-3 px-4 font-medium text-gray-700">Reasoning</td>
-                  {models.map((model) => (
-                    <td key={model.id} className="py-3 px-4 text-center">
-                      {model.features.reasoning ? (
-                        <Brain className="w-6 h-6 text-green-500 mx-auto" />
-                      ) : (
-                        <span className="text-gray-400 text-xl">−</span>
-                      )}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <td className="py-3 px-4 font-medium text-gray-700">Function Calling</td>
-                  {models.map((model) => (
-                    <td key={model.id} className="py-3 px-4 text-center">
-                      {model.features.functionCalling ? (
-                        <Zap className="w-6 h-6 text-blue-500 mx-auto" />
-                      ) : (
-                        <span className="text-gray-400 text-xl">−</span>
-                      )}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <td className="py-3 px-4 font-medium text-gray-700">Image Input</td>
-                  {models.map((model) => (
-                    <td key={model.id} className="py-3 px-4 text-center">
-                      {model.features.input.image ? (
-                        <Image className="w-6 h-6 text-purple-500 mx-auto" />
-                      ) : (
-                        <span className="text-gray-400 text-xl">−</span>
-                      )}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <td className="py-3 px-4 font-medium text-gray-700">Audio Input</td>
-                  {models.map((model) => (
-                    <td key={model.id} className="py-3 px-4 text-center">
-                      {model.features.input.audio ? (
-                        <Mic className="w-6 h-6 text-green-500 mx-auto" />
-                      ) : (
-                        <span className="text-gray-400 text-xl">−</span>
-                      )}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <td className="py-3 px-4 font-medium text-gray-700">Audio Output</td>
-                  {models.map((model) => (
-                    <td key={model.id} className="py-3 px-4 text-center">
-                      {model.features.output.audio ? (
-                        <Volume2 className="w-6 h-6 text-orange-500 mx-auto" />
-                      ) : (
-                        <span className="text-gray-400 text-xl">−</span>
-                      )}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <td className="py-3 px-4 font-medium text-gray-700">Knowledge Cutoff</td>
-                  {models.map((model) => (
-                    <td key={model.id} className="py-3 px-4 text-center text-sm text-gray-600 font-semibold">
-                      {model.features.knowledgeCutoff.toLocaleDateString()}
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    </ModelColorProvider>
   );
 };
 
