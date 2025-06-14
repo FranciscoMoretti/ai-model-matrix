@@ -2,7 +2,7 @@
 import React, { createContext, useContext } from "react";
 import type { ModelData } from "@/data/models";
 
-// Pick a color palette, could expand as needed
+// Distinct palette for up to 8 models (extend if needed)
 const PALETTE = [
   "bg-blue-500",
   "bg-green-500",
@@ -21,7 +21,7 @@ interface ModelColorContextValue {
 }
 
 const ModelColorContext = createContext<ModelColorContextValue>({
-  getColor: () => "bg-gray-500",
+  getColor: () => "bg-gray-400",
 });
 
 export const useModelColor = () => useContext(ModelColorContext);
@@ -35,7 +35,7 @@ export const ModelColorProvider: React.FC<{ models: ModelData[]; children: React
     colorMap[model.id] = PALETTE[i % PALETTE.length];
   });
 
-  const getColor = (modelId: string) => colorMap[modelId] || "bg-gray-500";
+  const getColor = (modelId: string) => colorMap[modelId] || "bg-gray-400";
 
   return (
     <ModelColorContext.Provider value={{ getColor }}>
@@ -43,3 +43,4 @@ export const ModelColorProvider: React.FC<{ models: ModelData[]; children: React
     </ModelColorContext.Provider>
   );
 };
+
