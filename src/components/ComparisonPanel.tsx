@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ModelData, getProviderColor } from '@/data/models';
-import { X, Brain, Zap, FileText, Image, Mic, Volume2 } from 'lucide-react';
+import { X, Brain, Zap, FileText, Image, Mic, Volume2, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface ComparisonPanelProps {
   models: ModelData[];
@@ -17,6 +18,8 @@ const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
   onRemoveModel, 
   onClearAll 
 }) => {
+  const navigate = useNavigate();
+
   if (models.length === 0) return null;
 
   const formatContextWindow = (tokens: number) => {
@@ -36,6 +39,11 @@ const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
     return `$${price.toFixed(2)}`;
   };
 
+  const handleGoToCompare = () => {
+    const modelIds = models.map(m => m.id).join(',');
+    navigate(`/comparison?models=${modelIds}`);
+  };
+
   return (
     <div className="fixed bottom-6 right-6 max-w-4xl w-full mx-6 z-50">
       <Card className="bg-white/95 backdrop-blur-sm shadow-2xl border-0">
@@ -44,9 +52,15 @@ const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
             <CardTitle className="text-lg">
               Model Comparison ({models.length})
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={onClearAll}>
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleGoToCompare} className="bg-blue-600 hover:bg-blue-700">
+                <ArrowRight className="w-4 h-4 mr-2" />
+                Go to Compare
+              </Button>
+              <Button variant="ghost" size="sm" onClick={onClearAll}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
