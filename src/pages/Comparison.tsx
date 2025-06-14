@@ -114,27 +114,119 @@ const Comparison = () => {
               const advantages = getModelAdvantages(model);
               return (
                 <Card key={model.id} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
-                  <div className="p-8">
+                  <div className="p-6">
                     <div className="space-y-6">
                       {/* Model Header */}
                       <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className={`text-white text-xs px-2 py-1 uppercase font-medium tracking-wide ${
+                            model.specification.provider === 'anthropic' ? 'bg-orange-500' :
+                            model.specification.provider === 'google' ? 'bg-blue-500' :
+                            model.specification.provider === 'openai' ? 'bg-green-500' :
+                            'bg-gray-500'
+                          }`}>
+                            {model.specification.provider}
+                          </Badge>
+                        </div>
                         <h3 className="text-xl font-bold text-gray-900">{model.name}</h3>
                         <p className="text-gray-600 text-sm leading-relaxed">{model.shortDescription}</p>
                       </div>
                       
-                      {/* Key Metrics */}
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                          <span className="text-sm font-medium text-gray-500">Input Price</span>
-                          <span className="text-sm font-semibold text-gray-900">{formatPrice(model.pricing.inputMTok)}/1M</span>
+                      {/* Pricing Cards */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="text-xs text-gray-500 mb-1">Input</div>
+                          <div className="text-lg font-bold text-gray-900">{formatPrice(model.pricing.inputMTok)}/1M tokens</div>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                          <span className="text-sm font-medium text-gray-500">Output Price</span>
-                          <span className="text-sm font-semibold text-gray-900">{formatPrice(model.pricing.outputMTok)}/1M</span>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="text-xs text-gray-500 mb-1">Output</div>
+                          <div className="text-lg font-bold text-gray-900">{formatPrice(model.pricing.outputMTok)}/1M tokens</div>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                          <span className="text-sm font-medium text-gray-500">Context Window</span>
-                          <span className="text-sm font-semibold text-gray-900">{formatContextWindow(model.features.contextWindow.input)}</span>
+                      </div>
+
+                      {/* Context Window */}
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="text-xs text-gray-500 mb-2">Context Window</div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-700">Input: <span className="font-bold text-gray-900">{formatContextWindow(model.features.contextWindow.input)}</span></span>
+                          <span className="text-sm font-medium text-gray-700">Output: <span className="font-bold text-gray-900">{formatContextWindow(model.features.contextWindow.output)}</span></span>
+                        </div>
+                      </div>
+
+                      {/* Input Capabilities */}
+                      <div>
+                        <div className="text-sm font-medium text-gray-700 mb-2">Input Capabilities</div>
+                        <div className="flex flex-wrap gap-2">
+                          <div className="flex items-center gap-1 text-xs px-2 py-1 bg-gray-100 rounded">
+                            <FileText className="w-3 h-3" />
+                            Text
+                          </div>
+                          {model.features.input.image && (
+                            <div className="flex items-center gap-1 text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                              <Image className="w-3 h-3" />
+                              Image
+                            </div>
+                          )}
+                          {model.features.input.pdf && (
+                            <div className="flex items-center gap-1 text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                              <FileText className="w-3 h-3" />
+                              PDF
+                            </div>
+                          )}
+                          {model.features.input.audio && (
+                            <div className="flex items-center gap-1 text-xs px-2 py-1 bg-green-100 text-green-700 rounded">
+                              <Mic className="w-3 h-3" />
+                              Audio
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Output Capabilities */}
+                      <div>
+                        <div className="text-sm font-medium text-gray-700 mb-2">Output Capabilities</div>
+                        <div className="flex flex-wrap gap-2">
+                          <div className="flex items-center gap-1 text-xs px-2 py-1 bg-gray-100 rounded">
+                            <FileText className="w-3 h-3" />
+                            Text
+                          </div>
+                          {model.features.output.audio && (
+                            <div className="flex items-center gap-1 text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded">
+                              <Volume2 className="w-3 h-3" />
+                              Audio
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Features */}
+                      <div>
+                        <div className="text-sm font-medium text-gray-700 mb-2">Features</div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Function Calling</span>
+                            {model.features.functionCalling ? (
+                              <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                                <Zap className="w-3 h-3 text-green-600" />
+                              </div>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Reasoning</span>
+                            {model.features.reasoning ? (
+                              <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center">
+                                <Brain className="w-3 h-3 text-blue-600" />
+                              </div>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Updated</span>
+                            <span className="text-xs text-gray-500">{model.features.knowledgeCutoff.toLocaleDateString()}</span>
+                          </div>
                         </div>
                       </div>
                       
