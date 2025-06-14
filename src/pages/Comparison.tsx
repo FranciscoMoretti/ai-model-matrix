@@ -119,7 +119,7 @@ const Comparison = () => {
                       {/* Model Header */}
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <Badge className={`text-white text-xs px-2 py-1 uppercase font-medium tracking-wide ${
+                          <Badge className={`text-white text-xs px-3 py-1 uppercase font-medium tracking-wide ${
                             model.specification.provider === 'anthropic' ? 'bg-orange-500' :
                             model.specification.provider === 'google' ? 'bg-blue-500' :
                             model.specification.provider === 'openai' ? 'bg-green-500' :
@@ -136,11 +136,11 @@ const Comparison = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-gray-50 rounded-lg p-3">
                           <div className="text-xs text-gray-500 mb-1">Input</div>
-                          <div className="text-lg font-bold text-gray-900">{formatPrice(model.pricing.inputMTok)}/1M tokens</div>
+                          <div className="text-base font-bold text-gray-900">{formatPrice(model.pricing.inputMTok)}/1M tokens</div>
                         </div>
                         <div className="bg-gray-50 rounded-lg p-3">
                           <div className="text-xs text-gray-500 mb-1">Output</div>
-                          <div className="text-lg font-bold text-gray-900">{formatPrice(model.pricing.outputMTok)}/1M tokens</div>
+                          <div className="text-base font-bold text-gray-900">{formatPrice(model.pricing.outputMTok)}/1M tokens</div>
                         </div>
                       </div>
 
